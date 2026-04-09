@@ -4,6 +4,17 @@ A modern Google Drive index and file-sharing app built on **Cloudflare Workers**
 
 It combines a clean web UI, direct file delivery, preview support, storage insights, and compatibility with older GOIndex-style links.
 
+
+## 📸 Screenshots
+
+<p align="center">
+  <img src="./screenshots/desktop.png" width="70%" />
+</p>
+
+<p align="center">
+  <img src="./screenshots/mobile.png" width="30%" />
+</p>
+
 ## Features
 
 ### Modern file-sharing UI
