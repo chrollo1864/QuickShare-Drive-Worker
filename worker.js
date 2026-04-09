@@ -1122,6 +1122,40 @@ function renderApp(env) {
       .stats { grid-template-columns: 1fr; }
       .storage-grid { grid-template-columns: 1fr; }
     }
+
+    .credit-tag {
+    margin-top: auto;
+    font-size: 12px;
+    opacity: 0.7;
+    text-align: center;
+  }
+  
+  .credit-tag a {
+    color: #ffffff;
+    text-decoration: none;
+    font-weight: 700;
+    position: relative;
+    z-index: 1;
+  }
+  
+  .credit-tag a::after {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #ff6f86, #7d6dff);
+    opacity: 0;
+    z-index: -1;
+    transition: opacity 0.3s ease;
+  }
+  
+  .credit-tag a:hover::after {
+    opacity: 0.25;
+  }
+  
+  .credit-tag a:hover {
+    color: #fff;
+  }
   </style>
 </head>
 <body>
@@ -1143,7 +1177,12 @@ function renderApp(env) {
       </div>
 
       <button id="homeHeroBtn" class="btn btn-pink">Open My Drive</button>
-    </aside>
+
+      <div class="credit-tag">
+      by <a href="https://github.com/chrollo1864" target="_blank">Shishio</a>
+      </div>
+
+      </aside>
 
     <main class="mid">
       <section class="card top">
