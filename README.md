@@ -219,7 +219,3 @@ Possible upgrades for later:
 * Subtitle auto-detection for video files
 * Password-protected routes
 * Better movie/series metadata cards
-
-## License
-
-Use and modify this project however you like for your own deployment and workflow.
