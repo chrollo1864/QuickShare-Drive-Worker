@@ -1,4 +1,4 @@
-#  GDrive Worker
+# QuickShare Drive Worker
 
 A modern Google Drive index and file-sharing app built on **Cloudflare Workers**.
 
@@ -156,6 +156,147 @@ GOOGLE_REFRESH_TOKEN
 ROOT_FOLDER_ID
 ```
 
+## How to get the Google credentials
+
+### 1. Create a Google Cloud project
+
+* Open Google Cloud Console
+* Create a new project or select an existing one
+* Make sure billing is not required for basic Drive API testing in most cases
+
+### 2. Enable the Google Drive API
+
+* In **APIs & Services > Library**
+* Search for **Google Drive API**
+* Click **Enable**
+
+### 3. Configure the OAuth consent screen
+
+* Go to **APIs & Services > OAuth consent screen**
+* Choose **External** for personal use, or **Internal** if you are using a Workspace account in your own org
+* Fill in the basic app information
+* Add your Google account as a **Test user** if the app is still in testing mode
+
+### 4. Create OAuth client credentials
+
+* Go to **APIs & Services > Credentials**
+* Click **Create Credentials > OAuth client ID**
+* For easiest local token generation, choose **Desktop app**
+* Save the generated values
+
+You will get:
+
+* **Client ID** → use as `GOOGLE_CLIENT_ID`
+* **Client Secret** → use as `GOOGLE_CLIENT_SECRET`
+
+### 5. Get a refresh token
+
+You need a refresh token because the Worker cannot do the interactive Google login flow by itself.
+
+A common way is to generate it locally using a small script or OAuth playground-style flow.
+
+#### Option A: Use a local Node.js script
+
+Install `googleapis`:
+
+```bash
+npm install googleapis
+```
+
+Create a file like `get-refresh-token.js`:
+
+```javascript
+const http = require("http");
+const { google } = require("googleapis");
+
+const CLIENT_ID = "YOUR_CLIENT_ID";
+const CLIENT_SECRET = "YOUR_CLIENT_SECRET";
+const REDIRECT_URI = "http://localhost:3000/callback";
+
+const oauth2Client = new google.auth.OAuth2(
+  CLIENT_ID,
+  CLIENT_SECRET,
+  REDIRECT_URI
+);
+
+const scopes = ["https://www.googleapis.com/auth/drive.readonly"];
+
+const authUrl = oauth2Client.generateAuthUrl({
+  access_type: "offline",
+  prompt: "consent",
+  scope: scopes
+});
+
+console.log("Open this URL in your browser:
+", authUrl);
+
+http.createServer(async (req, res) => {
+  if (!req.url.startsWith("/callback")) {
+    res.end("Waiting for callback...");
+    return;
+  }
+
+  const url = new URL(req.url, "http://localhost:3000");
+  const code = url.searchParams.get("code");
+
+  try {
+    const { tokens } = await oauth2Client.getToken(code);
+    console.log("
+Refresh token:
+", tokens.refresh_token);
+    res.end("Done. Check your terminal for the refresh token.");
+    process.exit(0);
+  } catch (err) {
+    console.error(err);
+    res.end("Failed to get token.");
+    process.exit(1);
+  }
+}).listen(3000, () => {
+  console.log("Listening on http://localhost:3000");
+});
+```
+
+Run it:
+
+```bash
+node get-refresh-token.js
+```
+
+Then:
+
+* open the printed URL
+* log in with the Google account that can access your files
+* approve access
+* copy the printed refresh token
+* use it as `GOOGLE_REFRESH_TOKEN`
+
+Important:
+
+* keep `prompt: "consent"` and `access_type: "offline"`
+* if Google does not return a refresh token, revoke the app access from your Google account and repeat the flow
+
+### 6. Get the root folder ID
+
+Open the folder in Google Drive and copy the ID from the URL.
+
+Example:
+
+```text
+https://drive.google.com/drive/folders/1AbCdEfGhIjKlMnOpQrStUvWxYz
+```
+
+The folder ID is:
+
+```text
+1AbCdEfGhIjKlMnOpQrStUvWxYz
+```
+
+Use that as `ROOT_FOLDER_ID`.
+
+### 7. Get the Shared Drive ID, if needed
+
+If you are using a Shared Drive, open that drive and copy its ID from the URL, then save it as `DRIVE_ID`.
+
 ## Optional environment variables
 
 ```text
@@ -219,3 +360,53 @@ Possible upgrades for later:
 * Subtitle auto-detection for video files
 * Password-protected routes
 * Better movie/series metadata cards
+
+## Troubleshooting Google setup
+
+### No refresh token returned
+
+Usually caused by one of these:
+
+* you did not use `access_type=offline`
+* you did not force `prompt=consent`
+* you already granted the app before, so Google reused the old consent
+
+Fix:
+
+* revoke the app from your Google account permissions
+* run the auth flow again
+* make sure `prompt: "consent"` is included
+
+### The Worker can see folders but not files
+
+Possible causes:
+
+* wrong `ROOT_FOLDER_ID`
+* the Google account used for the refresh token does not have access to nested content
+* `DRIVE_ID` is missing for a Shared Drive
+
+### Storage endpoint fails
+
+Possible causes:
+
+* Drive API not enabled
+* refresh token is invalid or expired
+* wrong client credentials
+
+### Which account does the Worker use?
+
+The Worker uses the Google account tied to the refresh token.
+That account must have permission to access the target folder or Shared Drive.
+
+## License
+
+MIT License © 2026 Chrollo1864
+
+You are free to use, modify, and distribute this project.
+
+However, you MUST:
+- Give proper credit to the original author
+- Include a link to this repository
+
+Example credit:
+"Based on QuickShare Drive Worker by Chrollo1864"
